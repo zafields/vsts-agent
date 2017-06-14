@@ -146,7 +146,7 @@ get_distro_specific_os_name() {
             fi
         fi
     fi
-    
+
     say_verbose "Distribution specific OS name and version could not be detected: $ID.$VERSION_ID"
     return 1
 }
@@ -648,7 +648,7 @@ install_dotnet() {
         say ".NET SDK version $specific_version is already installed."
         return 0
     fi
-    
+
     mkdir -p $install_root
     zip_path=$(mktemp $temporary_file_template)
     say_verbose "Zip path: $zip_path"
@@ -665,10 +665,10 @@ install_dotnet() {
         say "Downloading legacy link: $download_link"
         download "$download_link" $zip_path
     fi
-    
+
     say "Extracting zip from $download_link"
     extract_dotnet_package $zip_path $install_root
-    
+
     return 0
 }
 
