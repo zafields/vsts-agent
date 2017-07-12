@@ -1,0 +1,7 @@
+FROM edgebuilds.azurecr.io/azedge-dotnet-runtime-armv7hf:latest
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+# VSTS Agent dependencies
+        git \
+    && rm -rf /var/lib/apt/lists/*
