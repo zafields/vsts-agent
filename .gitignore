@@ -8,6 +8,8 @@
 **/.vscode
 **/*.error
 **/*.json.pretty
+**/*.user
+PublishProfiles/
 node_modules
 _downloads
 _layout

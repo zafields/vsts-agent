@@ -1,0 +1,36 @@
+FROM edgebuilds.azurecr.io/azedge-dotnet-runtime-armv7hf:latest
+
+# Build arguments
+ARG ARCH=armv7l
+ARG NODE_VERSION=v6.10.3
+
+# Install VSTS Agent dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create execution environment
+WORKDIR /vsts
+COPY ./bin/ ./bin/
+RUN mkdir ./externals/tee -p \
+ && touch ./externals/tee/license.html \
+ && mkdir ./externals/vso-task-lib \
+ && touch ./externals/vso-task-lib/README.txt \
+ && mkdir ./externals/node \
+ && curl -SL https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-linux-$ARCH.tar.gz --output node.tar.gz \
+ && tar -xzf node.tar.gz \
+ && mv ./node-$NODE_VERSION-linux-$ARCH/ -T ./externals/node/ \
+ && rm node.tar.gz
+
+# Launch VSTS-Agent
+CMD /vsts/bin/Agent.Listener configure \
+      --unattended \
+      --agent "${VSTS_AGENT:-$(hostname)}" \
+      --url "https://${VSTS_ACCOUNT:-msazure}.visualstudio.com" \
+      --auth PAT \
+      --token "${VSTS_TOKEN}" \
+      --pool "${VSTS_POOL:-Azure-IoT-Edge-Core}" \
+      --work "${VSTS_WORK:-_work}" \
+      --replace \
+ && /vsts/bin/Agent.Listener run

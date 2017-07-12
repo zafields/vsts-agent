@@ -1,0 +1,86 @@
+######
+# Delta from VSTS Hosted Linux Preview:
+# - cmake installed by .deb package instead of curl script
+#   * impact: version not fixed to 3.8.2
+# - libicu55 updated to libicu57
+# - git-core ppa not added (Ubuntu only)
+#   * impact: potentially older version of Git
+# - git-lfs not installed (no ARM support as of 01 AUG 2017)
+# - openjdk-r ppa not added (Ubuntu only)
+# - openjdk-7-jdk not installed (Ubuntu only)
+######
+
+FROM edgebuilds.azurecr.io/azedge-vsts-agent-base-armv7hf:latest
+
+# Configure environment variables
+ENV ANT_HOME=/usr/share/ant \
+    bower=/usr/local/bin/bower \
+    dotnet=/usr/bin/dotnet \
+    GRADLE_HOME=/usr/share/gradle \
+    grunt=/usr/local/bin/grunt \
+    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-armhf \
+    JAVA_HOME_8_ARM=/usr/lib/jvm/java-8-openjdk-armhf \
+    JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8 \
+    M2_HOME=/usr/share/maven
+
+# Install "Hosted Linux Preview" packages
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ant \
+      ant-optional \
+      build-essential \
+      cmake \
+      curl \
+      dnsutils \
+      file \
+      ftp \
+      git \
+      gnupg2 \
+      gradle \
+      iproute2 \
+      iputils-ping \
+      jq \
+      libcurl3 \
+      libicu57 \
+      libunwind8 \
+      maven \
+      openjdk-8-jdk \
+      openssh-client \
+      python \
+      python3 \
+      software-properties-common \
+      sudo \
+      telnet \
+      time \
+      tzdata \
+      unzip \
+      wget \
+      zip \
+ && rm -rf /var/lib/apt/lists/* \
+ && update-alternatives --set java /usr/lib/jvm/java-8-openjdk-armhf/jre/bin/java
+
+# Install stable Node.js and related build tools
+RUN curl -sL https://git.io/n-install | bash -s -- -ny - \
+ && ~/n/bin/n stable \
+ && npm install -g bower grunt gulp n \
+ && rm -rf ~/n
+
+# Accept the TEE EULA
+RUN mkdir -p "/root/.microsoft/Team Foundation/4.0/Configuration/TEE-Mementos" \
+ && cd "/root/.microsoft/Team Foundation/4.0/Configuration/TEE-Mementos" \
+ && echo '<ProductIdData><eula-14.0 value="true"/></ProductIdData>' > "com.microsoft.tfs.client.productid.xml"
+
+# Run dotnet command to populate initial cache
+RUN dotnet --info
+
+# Launch VSTS-Agent
+CMD /vsts/bin/Agent.Listener configure \
+      --unattended \
+      --agent "${VSTS_AGENT:-$(hostname)}" \
+      --url "https://${VSTS_ACCOUNT:-msazure}.visualstudio.com" \
+      --auth PAT \
+      --token "${VSTS_TOKEN}" \
+      --pool "${VSTS_POOL:-Azure-IoT-Edge-Core}" \
+      --work "${VSTS_WORK:-_work}" \
+      --replace \
+ && /vsts/bin/Agent.Listener run
